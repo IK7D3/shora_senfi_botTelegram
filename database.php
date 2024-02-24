@@ -81,6 +81,9 @@ if ($callback_query) {
         case 'start_ersal':
             sendMessage_form($callback_user_id, $callback_message_id);
             break;
+        case 'start_channel':
+            kanalvgroh_form($callback_user_id, $callback_message_id);
+            break;
         case 'sendMessage_form_shoraha':
             sendMessage_form_shoraha($callback_user_id, $callback_message_id);
             break;
