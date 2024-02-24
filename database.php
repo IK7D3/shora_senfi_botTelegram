@@ -103,6 +103,27 @@ if ($callback_query) {
         case 'kanalvgroh_form_bazgasht':
             reStartCommand($callback_user_id, $callback_message_id);
             break;
+        
+        case 'sendMessage_form_shoraha_khaharan':
+        case 'sendMessage_form_shoraha_baradaran':
+        case 'sendMessage_form_shoraha_ensani':
+        case 'sendMessage_form_shoraha_paye':
+        case 'sendMessage_form_shoraha_honar':
+        case 'sendMessage_form_shoraha_fani':
+            $sql = "UPDATE Users SET step = 1 WHERE `telegram_id` = '$callback_user_id'";
+            $res = $connection->query($sql);
+            before1_ersalePayam($callback_query_data, $callback_user_id, $callback_message_id);
+            break;
+
+
+        case 'before1_ersalePayam_bazgasht':
+            $sql = "UPDATE Users SET step = 0 WHERE `telegram_id` = '$callback_user_id'";
+            $res = $connection->query($sql);
+            sendMessage_form_shoraha($callback_user_id, $callback_message_id);
+            break;
+        case 'before2_ersalePayam_bazgasht':
+            sendMessage_form_komision($callback_user_id, $callback_message_id);
+            break;
         default:
             # code...
             break;
@@ -112,6 +133,22 @@ if ($callback_query) {
 
 if ($text == "/start") {
     startCommand($chat_id, $message_id);
+}else{
+    $sql = "SELECT * FROM Users WHERE `telegram_id` = '$chat_id'";
+    $res = $connection->query($sql);
+    $row = $res->fetch_assoc();
+    if (mysqli_num_rows($res) && $row['step'] == 1) {
+        ersalePayam($row['temp_department'], $text);
+        bot("sendMessage", [
+            "chat_id" => $chat_id,
+            "text" => "پیام ارسال شد!"
+        ]);
+        $sql = "UPDATE Users SET step = 0 WHERE `telegram_id` = '$chat_id'";
+        $res = $connection->query($sql);
+        startCommand($chat_id, $message_id);
+    }else{
+
+    }
 }
 
 
@@ -186,6 +223,7 @@ function sendMessage_form($callback_user_id, $callback_message_id){
         "reply_markup" => json_encode(['inline_keyboard'=>$inlineKeyboard])
     ]);
 }
+// دکمه شوراها
 function sendMessage_form_shoraha($callback_user_id, $callback_message_id){
     $inlineKeyboard = [
         [
@@ -212,6 +250,7 @@ function sendMessage_form_shoraha($callback_user_id, $callback_message_id){
         "reply_markup" => json_encode(['inline_keyboard'=>$inlineKeyboard])
     ]);
 }
+// دکمه کمیسیون ها
 function sendMessage_form_komision($callback_user_id, $callback_message_id){
     $inlineKeyboard = [
         [
@@ -258,6 +297,49 @@ function kanalvgroh_form($callback_user_id, $callback_message_id){
     ]);
 }
 
+//  عمل ارسال پیام
+function before1_ersalePayam($department_name, $callback_user_id, $callback_message_id){
+    global $connection;
+    $sql = "UPDATE Users SET `temp_department` = '$department_name' WHERE `telegram_id` = '$callback_user_id'";
+    $res = $connection->query($sql);
+    $inlineKeyboard = [
+        [
+            ['text' => 'بازگشت', 'callback_data'=> 'before1_ersalePayam_bazgasht'],
+        ],
+    ];
+    bot("editMessageText", [
+        "chat_id" => $callback_user_id,
+        "message_id" => $callback_message_id,
+        "text" => "پیام خود را وارد کنید. یا بازگشت بزنید.",
+        "reply_markup" => json_encode(['inline_keyboard'=>$inlineKeyboard])
+    ]);
+}
+function before2_ersalePayam($department_name, $callback_user_id, $callback_message_id){
+    global $connection;
+    $sql = "UPDATE Users SET `temp_department` = '$department_name' WHERE `telegram_id` = '$callback_user_id'";
+    $res = $connection->query($sql);
+    $inlineKeyboard = [
+        [
+            ['text' => 'بازگشت', 'callback_data'=> 'before2_ersalePayam_bazgasht'],
+        ],
+    ];
+    bot("editMessageText", [
+        "chat_id" => $callback_user_id,
+        "message_id" => $callback_message_id,
+        "text" => "پیام خود را وارد کنید. یا بازگشت بزنید.",
+        "reply_markup" => json_encode(['inline_keyboard'=>$inlineKeyboard])
+    ]);
+}
+function ersalePayam($department_name, $text){
+    global $connection;
+    $sql = "SELECT * FROM IDreceivers WHERE `department_name` = '$department_name'";
+    $res = $connection->query($sql);
+    $row = $res->fetch_assoc();
+    bot("sendMessage", [
+        "chat_id" => $row['telegram_id'],
+        "text" => $text
+    ]);
+}
 
 // خود بات
 function bot($method, $data=[]){
